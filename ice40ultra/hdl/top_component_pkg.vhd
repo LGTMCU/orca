@@ -69,6 +69,30 @@ package top_component_pkg is
       hp      : out std_logic);
   end component;
 
+  component spi_flash
+    port (
+      SPI1_MISO : inout std_logic;
+      SPI1_MOSI : inout std_logic;
+      SPI1_SCK  : inout std_logic;
+      SPI1_SCSN : in std_logic;
+      SPI1_MCSN : out std_logic_vector(3 downto 0);
+      RST       : in std_logic;
+      IPLOAD    : in std_logic;
+      IPDONE    : out std_logic;
+      SBCLKi    : in std_logic;
+      SBWRi     : in std_logic;
+      SBSTBi    : in std_logic;
+      SBADRi    : in std_logic_vector(7 downto 0);
+      SBDATi    : in std_logic_vector(7 downto 0);
+      SBDATo    : out std_logic_vector(7 downto 0);
+      SBACKo    : out std_logic;
+      I2CPIRQ   : out std_logic_vector(1 downto 0);
+      I2CPWKUP  : out std_logic_vector(1 downto 0);
+      SPIPIRQ   : out std_logic_vector(1 downto 0);
+      SPIPWKUP  : out std_logic_vector(1 downto 0)
+    );
+  end component;
+
   component riscV_wishbone is
     generic (
       REGISTER_SIZE      : integer              := 32;
@@ -370,6 +394,35 @@ package top_component_pkg is
       );
   end component pmod_mic_wb;
 
+  component wb_flash is
+    port (
+      CLK_I   : in std_logic;
+      RST_I   : in std_logic;
+
+      ADR_I   : in std_logic_vector(31 downto 0);
+      DAT_I   : in std_logic_vector(31 downto 0);
+      WE_I    : in std_logic;
+      CYC_I   : in std_logic;
+      STB_I   : in std_logic;
+      SEL_I   : in std_logic_vector(3 downto 0);
+      CTI_I   : in std_logic_vector(2 downto 0);
+      BTE_I   : in std_logic_vector(1 downto 0);
+      LOCK_I  : in std_logic;
+
+      ACK_O   : out std_logic;
+      STALL_O : out std_logic;
+      DAT_O   : out std_logic_vector(31 downto 0);
+      ERR_O   : out std_logic;
+      RTY_O   : out std_logic;
+
+      DEBUG   : out std_logic_vector(2 downto 0);
+
+      SPI1_MISO : inout std_logic;
+      SPI1_MOSI : inout std_logic;
+      SPI1_SCK  : inout std_logic;
+      SPI1_MCSN : out std_logic_vector(3 downto 0);
+      SPI1_SCSN : in std_logic);
+  end component wb_flash;
 
 end package;
 
