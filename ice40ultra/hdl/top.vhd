@@ -1,4 +1,3 @@
-
 library ieee;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -23,7 +22,14 @@ entity top is
     B_LED  : out std_logic;
     HP_LED : out std_logic;
 
-    gpio : inout std_logic_vector(11 downto 0)
+    gpio : inout std_logic_vector(11 downto 0);
+    
+    -- SPI
+    SPI1_MISO  : inout std_logic;
+    SPI1_MOSI  : inout std_logic;
+    SPI1_SCK   : inout std_logic;
+    SPI1_MCSN0 : out std_logic
+
     );
 end entity;
 
@@ -38,10 +44,8 @@ architecture rtl of top is
   constant DATA_RAM_SIZE : natural := 4*1024;
 
   constant SEPERATE_MEMS : boolean := true;
-
-
+  
   signal reset : std_logic;
-
 
   signal data_ADR_O  : std_logic_vector(31 downto 0);
   signal data_DAT_O  : std_logic_vector(REGISTER_SIZE-1 downto 0);
@@ -105,7 +109,23 @@ architecture rtl of top is
   signal gpio_err_o   : std_logic;
   signal gpio_rty_o   : std_logic;
 
+  signal flash_ADR_I   : std_logic_vector(REGISTER_SIZE-1 downto 0);
+  signal flash_DAT_I   : std_logic_vector(REGISTER_SIZE-1 downto 0);
+  signal flash_DAT_O   : std_logic_vector(REGISTER_SIZE-1 downto 0);
+  signal flash_WE_I    : std_logic;
+  signal flash_CYC_I   : std_logic;
+  signal flash_STB_I   : std_logic;
+  signal flash_SEL_I   : std_logic_vector(3 downto 0);
+  signal flash_CTI_I   : std_logic_vector(2 downto 0);
+  signal flash_BTE_I   : std_logic_vector(1 downto 0);
+  signal flash_LOCK_I  : std_logic;
+  signal flash_ACK_O   : std_logic;
+  signal flash_STALL_O : std_logic;
+  signal flash_ERR_O   : std_logic;
+  signal flash_RTY_O   : std_logic;
 
+  signal SPI1_MCSN     : std_logic_vector(3 downto 0);
+  signal SPI1_SCSN     : std_logic;
 
   signal data_uart_adr_i   : std_logic_vector(REGISTER_SIZE-1 downto 0);
   signal data_uart_dat_i   : std_logic_vector(REGISTER_SIZE-1 downto 0);
@@ -183,6 +203,8 @@ architecture rtl of top is
   signal blue_led    : std_logic;
   signal coe_to_host : std_logic_vector(31 downto 0);
   signal hp_pwm      : std_logic;
+
+  signal flash_debug : std_logic_vector(2 downto 0);
 
   constant SYSCLK_FREQ_HZ         : natural                                     := 12000000;
   constant HEARTBEAT_COUNTER_BITS : positive                                    := log2(SYSCLK_FREQ_HZ);  -- ~1 second to roll over
@@ -408,7 +430,8 @@ begin
       master0_address => (0+INST_RAM_SIZE, DATA_RAM_SIZE)  --RAM
 , master1_address     => (16#00010000#, 4*1024)            --led
 , master2_address     => (16#00020000#, 4*1024)            --uart
-, master3_address     => (16#00030000#, 4*1024))
+, master3_address     => (16#00030000#, 4*1024)            --gpio
+, master4_address     => (16#01000000#, 2**24))            --flash, 0x01000000 -> 0x1FFFFFF, 4MB  
 
     port map(
       clk_i => clk,
@@ -454,12 +477,10 @@ begin
       master1_BTE_O   => led_BTE_I,
       master1_LOCK_O  => led_LOCK_I,
       master1_STALL_I => led_STALL_O,
-
       master1_DAT_I => led_DAT_O,
       master1_ACK_I => led_ACK_O,
       master1_ERR_I => led_ERR_O,
       master1_RTY_I => led_RTY_O,
-
 
       master2_ADR_O   => data_uart_ADR_I,
       master2_DAT_O   => data_uart_DAT_I,
@@ -476,7 +497,6 @@ begin
       master2_ERR_I   => data_uart_ERR_O,
       master2_RTY_I   => data_uart_RTY_O,
 
-
       master3_ADR_O   => gpio_ADR_I,
       master3_DAT_O   => gpio_DAT_I,
       master3_WE_O    => gpio_WE_I,
@@ -490,7 +510,22 @@ begin
       master3_DAT_I   => gpio_DAT_O,
       master3_ACK_I   => gpio_ACK_O,
       master3_ERR_I   => gpio_ERR_O,
-      master3_RTY_I   => gpio_RTY_O
+      master3_RTY_I   => gpio_RTY_O,
+
+      master4_ADR_O   => flash_ADR_I,
+      master4_DAT_O   => flash_DAT_I,
+      master4_WE_O    => flash_WE_I,
+      master4_CYC_O   => flash_CYC_I,
+      master4_STB_O   => flash_STB_I,
+      master4_SEL_O   => flash_SEL_I,
+      master4_CTI_O   => flash_CTI_I,
+      master4_BTE_O   => flash_BTE_I,
+      master4_LOCK_O  => flash_LOCK_I,
+      master4_STALL_I => flash_STALL_O,
+      master4_DAT_I   => flash_DAT_O,
+      master4_ACK_I   => flash_ACK_O,
+      master4_ERR_I   => flash_ERR_O,
+      master4_RTY_I   => flash_RTY_O
 
       );
 
@@ -521,7 +556,7 @@ begin
       RTY_O   => led_RTY_O,
       input_output  => led_pio_out);
 
-    gpio_pio : component wb_pio
+  gpio_pio : component wb_pio
     generic map (
        DATA_WIDTH => gpio'length)
     port map(
@@ -543,6 +578,39 @@ begin
       ERR_O   => gpio_ERR_O,
       RTY_O   => gpio_RTY_O,
       input_output  => gpio);
+
+  SPI1_MCSN0 <= SPI1_MCSN(0);     -- Only ever using the one slave
+  SPI1_SCSN  <= '1';              -- Chip never accessed by a master
+
+  flash_mem : component wb_flash
+    port map (
+      CLK_I     => clk,
+      RST_I     => reset,
+
+      ADR_I     => flash_ADR_I, 
+      DAT_I     => flash_DAT_I,
+      WE_I      => flash_WE_I,
+      CYC_I     => flash_CYC_I,
+      STB_I     => flash_STB_I,
+      SEL_I     => flash_SEL_I,
+      CTI_I     => flash_CTI_I,
+      BTE_I     => flash_BTE_I,
+      LOCK_I    => flash_LOCK_I,
+
+      ACK_O     => flash_ACK_O,
+      STALL_O   => flash_STALL_O,
+      DAT_O     => flash_DAT_O,
+      ERR_O     => flash_ERR_O,
+      RTY_O     => flash_RTY_O,
+
+      DEBUG     => flash_debug,
+      
+      SPI1_MISO => SPI1_MISO,
+      SPI1_MOSI => SPI1_MOSI,
+      SPI1_SCK  => SPI1_SCK,
+      SPI1_MCSN => SPI1_MCSN,  -- active low, only one slave
+      SPI1_SCSN => SPI1_SCSN); -- active low, never use this
+        
 
 -----------------------------------------------------------------------------
 -- Debugging logic (PC over UART)
@@ -750,9 +818,9 @@ begin
     "111" when reset = '1' and heartbeat_counter(6 downto 0) = "0000001" else
     red_led & green_led & blue_led;
 
-  red_led   <= '1' when unsigned(led_pio_out(23 downto 16)) > heartbeat_counter(7 downto 0) else '0';
-  green_led <= '1' when unsigned(led_pio_out(15 downto 8)) > heartbeat_counter(7 downto 0)  else '0';
-  blue_led  <= '1' when unsigned(led_pio_out(7 downto 0)) > heartbeat_counter(7 downto 0)   else '0';
+  red_led   <= flash_debug(2) when unsigned(led_pio_out(23 downto 16)) > heartbeat_counter(7 downto 0) else '0';
+  green_led <= flash_debug(1) when unsigned(led_pio_out(15 downto 8)) > heartbeat_counter(7 downto 0)  else '0';
+  blue_led  <= flash_debug(0) when unsigned(led_pio_out(7 downto 0)) > heartbeat_counter(7 downto 0)   else '0';
 
 
   led : component my_led

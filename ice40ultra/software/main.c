@@ -44,29 +44,46 @@ void delayus(int us)
 }
 #define delayms(ms) delayus(ms*1000)
 
-
-int main()
+#define FLASH_BASE ((volatile int*) 0x01000000) 
+#define FLASH_MEM  ((volatile int*) 0x01200000)
+#define FLASH_END  ((volatile int*) 0x02000000)
+#define WORD_SIZE 4
+int main(void)
 {
-	int i=0;
-	int colour=0x01;
-	UART_INIT();
-	init_printf(0,mputc);
-	int delay_length=500;
-	for(;;){
-		if ((colour<<=8) >=0x00800000){
-			colour>>= 23;
-		}
-		*ledrgb=colour;
-		printf("Hello World %d\r\n",i++);
-		debugx(*gpio_data);
+  unsigned int data;
+  unsigned int address = 0;
+  unsigned int index = 0;
+  
+  // Lower the LED intensity.
+  *ledrgb = 0x0F0F0F;
+  
+  UART_INIT();
+  init_printf(0, mputc);
+  printf("top_bitmap.hex\r\n");
+  while((FLASH_BASE + address) < FLASH_END) {
+    data = *(FLASH_BASE + address);
+    address += WORD_SIZE; 
+    printf("%08x\n", data);
+  }
+  return 1;
 
-		if((*gpio_data)&1){
-			delay_length=500;
-		}else{
-			delay_length=250;
-		}
-		delayms(delay_length);
-	}
+  while(index < 10) {
+    printf("Hello %d\r\n", index);
+    index += 1;
+    delayms(500);
+  }
+  while ((FLASH_MEM + address) < FLASH_END) {
+    data = *(FLASH_BASE + address);
+    printf("Address: %08x Data: %08x", (unsigned int)(FLASH_MEM+address), data);
+    address += 4;
+  }
+  index = 100;
+  while(1) {
+    printf("Hello %d\r\n", index);
+    index += 1;
+    delayms(500);
+  }
+  return 1;
 }
 
 
