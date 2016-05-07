@@ -124,6 +124,8 @@ begin
                 SBACKo <= '1';
                 state <= strobe_low;
                 case SBADRi is
+                  when CR2_ADR =>
+                    SBDATo <= CR2_reg;
                   when SPISR_ADR =>
                     SBDATo <= SPISR_reg;
                   when RX_ADR =>

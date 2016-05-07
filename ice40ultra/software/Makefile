@@ -14,7 +14,7 @@ CC=$(CROSS_COMPILE)gcc
 OBJCOPY=$(CROSS_COMPILE)objcopy
 OBJDUMP=$(CROSS_COMPILE)objdump
 ARCH=RV32IXmxp
-CFLAGS= -m32  -march=$(ARCH) -O2 -MD -Wall -std=gnu99
+CFLAGS= -m32 -O2 -g -march=$(ARCH)  -MD -Wall -std=gnu99
 LD_FLAGS= -m32 -march=$(ARCH) -static -nostartfiles
 
 TARGET=test

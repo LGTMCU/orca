@@ -1,4 +1,5 @@
 #include "printf.h"
+#include "spi.h"
 
 
 #define SYS_CLK 12000000
@@ -44,45 +45,22 @@ void delayus(int us)
 }
 #define delayms(ms) delayus(ms*1000)
 
-#define FLASH_BASE ((volatile int*) 0x01000000) 
-#define FLASH_MEM  ((volatile int*) 0x01200000)
-#define FLASH_END  ((volatile int*) 0x02000000)
-#define WORD_SIZE 4
+
 int main(void)
 {
-  unsigned int data;
-  unsigned int address = 0;
-  unsigned int index = 0;
-  
-  // Lower the LED intensity.
-  *ledrgb = 0x0F0F0F;
-  
   UART_INIT();
   init_printf(0, mputc);
-  printf("top_bitmap.hex\r\n");
-  while((FLASH_BASE + address) < FLASH_END) {
-    data = *(FLASH_BASE + address);
-    address += WORD_SIZE; 
-    printf("%08x\n", data);
-  }
-  return 1;
+  unsigned int data;
+  printf("Lowering LEDs\r\n");
+  // Lower the LED intensity.
+  *ledrgb = 0x0F0F0F;
+  printf("Storing SPI byte\r\n");
+  // Initialize the SPI frame.
+  *CR2_ADDR = FRAME_I;
+  printf("Successful write to CR2 Register\r\n");
+  data = *CR2_ADDR;
+  printf("Data = %08x\r\n", data);
 
-  while(index < 10) {
-    printf("Hello %d\r\n", index);
-    index += 1;
-    delayms(500);
-  }
-  while ((FLASH_MEM + address) < FLASH_END) {
-    data = *(FLASH_BASE + address);
-    printf("Address: %08x Data: %08x", (unsigned int)(FLASH_MEM+address), data);
-    address += 4;
-  }
-  index = 100;
-  while(1) {
-    printf("Hello %d\r\n", index);
-    index += 1;
-    delayms(500);
-  }
   return 1;
 }
 
