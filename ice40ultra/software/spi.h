@@ -1,13 +1,24 @@
 #ifndef SPI_H
 #define SPI_H
 
+#include "printf.h"
+
+// Constants
+#define ID_LENGTH  20
 #define FLASH_BASE ((volatile int*) 0x01000000) 
+#define FLASH_END  ((volatile int*) 0x02000000)
 
 // Register Addresses
-#define CR2_ADDR   ((volatile int*) (0x01000000 + (0x2A << 2))) 
+#define CR0_ADR    ((volatile int*) (0x01000000 + (0x28 << 2)))
+#define CR1_ADR    ((volatile int*) (0x01000000 + (0x29 << 2)))
+#define CR2_ADR    ((volatile int*) (0x01000000 + (0x2A << 2))) 
+#define BR_ADR     ((volatile int*) (0x01000000 + (0x2B << 2)))
+#define SR_ADR     ((volatile int*) (0x01000000 + (0x2C << 2)))
 #define TX_ADR     ((volatile int*) (0x01000000 + (0x2D << 2)))
 #define RX_ADR     ((volatile int*) (0x01000000 + (0x2E << 2)))
-#define SR_ADR     ((volatile int*) (0x01000000 + (0x2C << 2)))
+#define CS_ADR     ((volatile int*) (0x01000000 + (0x2F << 2)))
+
+
 
 // Register Values
 #define FRAME_I     0xC0
@@ -24,30 +35,7 @@
 #define READ        0x03
 
 
-unsigned int get_id(void) {
-  
-  unsigned char buffer[20] = {0};
-  int i = 0;
-  // Start frame.
-  *CR2_ADDR = FRAME_I;
-  // Wait for TRDY.
-  while(!((*SR_ADR) & TRDY_M)); 
-
-  // Add write data to TX.
-  *TX_ADR = READ_ID;
-  // Wait for RRDY.
-  while(!((*SR_ADR) & RRDY_M));
-  // Read and discard RRDY.
-
-
-  // Add blank data to TX.
-  // Wait for RRDY.
-  // Collect output data.
-
-
-
-}
-
-
+void get_id(void);
+void status(void);
 
 #endif

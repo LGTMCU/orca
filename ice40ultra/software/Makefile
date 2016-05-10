@@ -4,7 +4,7 @@ AS_SRCS=crt.S
 C_SRCS=
 C_SRCS+=main.c
 C_SRCS+=printf.c
-
+C_SRCS+=spi.c
 
 C_OBJ_FILES=$(addprefix obj/,$(addsuffix .o, $(C_SRCS)))
 S_OBJ_FILES=$(addprefix obj/,$(addsuffix .o, $(AS_SRCS)))
@@ -34,7 +34,7 @@ LIBC=
 
 $(TARGET).elf: $(C_OBJ_FILES) $(S_OBJ_FILES) $(LD_SCRIPT)
 	$(CC) -T $(LD_SCRIPT) $(S_OBJ_FILES)  $(C_OBJ_FILES)  -o $@ $(LD_FLAGS)
-	$(OBJDUMP)  --disassemble-all test.elf > test.dump
+	$(OBJDUMP)  --disassemble-all -S test.elf > test.dump
 $(TARGET).bin: $(TARGET).elf
 	$(OBJCOPY) -O binary $< $@
 

@@ -152,23 +152,22 @@ begin
         done_flag <= '0';
         case state is
           when start => 
+            DEBUG <= "111";
             ACK_O <= '0';
-            IPLOAD <= '1';
+--            IPLOAD <= '1';
             if (cycle_valid = '1') then
-              --DEBUG <= DEBUG or "100";
               state <= handler;
             end if;
 
           when handler =>
+            DEBUG <= "100";
             if (cycle_valid = '1') then
               if (WE_I = '1') then  -- write
-                --DEBUG <= DEBUG or "101";
                 SBSTBi <= '1';
                 SBWRi <= '1';
                 SBADRi <= ADR_I(9 downto 2);
                 SBDATi <= DAT_I(7 downto 0);
                 if (SBACKo = '1') then
-                  --DEBUG <= DEBUG or "111";
                   SBSTBi <= '0';
                   done_flag <= '1';
                   state <= done;
@@ -188,6 +187,7 @@ begin
             end if;
 
           when done =>        -- let processor unstall
+            DEBUG <= "101";
             done_flag <= '0';
             ACK_O <= '1';
             state <= start;
