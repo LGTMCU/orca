@@ -68,16 +68,11 @@ int main(void)
   }
   printf("Done.\r\n");
 */
-  while(1) {
-    printf("Status Before:\r\n");
-    status();
-    *CS_ADR = 0x0F;
-    delayms(1000);
-    get_id();
-    printf("Status After:\r\n");
-    status();
-    *CS_ADR = 0x01;
-  }
+  printf("Status Before:\r\n");
+  status();
+  get_id();
+  printf("Status After:\r\n");
+  status();
   return 1;
 }
 
