@@ -50,29 +50,15 @@ int main(void)
 {
   UART_INIT();
   init_printf(0, mputc);
-  unsigned int data;
   printf("Lowering LEDs...\r\n");
   // Lower the LED intensity.
   *ledrgb = 0x0F0F0F;
-/*
-  printf("Storing SPI byte...\r\n");
-  // Initialize the SPI frame.
-  *CR2_ADR = FRAME_I;
-  printf("Successful write to CR2 Register.\r\n");
-  data = *CR2_ADR;
-  printf("Successful read from CR2 Register.\r\n");
-  printf("Data = %08x\r\n", data);
-  printf("Attempting to read UID...\r\n");
+  
+  printf("Status Before:\r\n");
+  status();
   while(1) {
     get_id();
   }
-  printf("Done.\r\n");
-*/
-  printf("Status Before:\r\n");
-  status();
-  get_id();
-  printf("Status After:\r\n");
-  status();
   return 1;
 }
 
